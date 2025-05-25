@@ -23,12 +23,14 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '~/components/ui/tooltip';
+import { useAuthStore } from '~/store/auth';
 
 const GITHUB_AVATAR_URI =
     'https://i.pinimg.com/originals/ef/a2/8d/efa28d18a04e7fa40ed49eeb0ab660db.jpg';
 
-export default function Screen() {
+export default function HomeScreen() {
     const [progress, setProgress] = React.useState(78);
+    const { signOut } = useAuthStore();
 
     function updateProgressValue() {
         setProgress(Math.floor(Math.random() * 100));
@@ -117,6 +119,12 @@ export default function Screen() {
                         className="shadow shadow-foreground/5"
                         onPress={updateProgressValue}>
                         <Text>Update</Text>
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        className="shadow shadow-foreground/5 mt-2"
+                        onPress={signOut}>
+                        <Text>Sign Out</Text>
                     </Button>
                 </CardFooter>
             </Card>

@@ -7,7 +7,7 @@ import {
     ThemeProvider,
 } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { Appearance, Platform, View } from 'react-native';
@@ -16,6 +16,7 @@ import { ThemeToggle } from '~/components/ThemeToggle';
 import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
+import { useAuthStore } from '~/store/auth'; // Import the Zustand store
 
 const LIGHT_THEME: Theme = {
     ...DefaultTheme,
@@ -37,25 +38,47 @@ const usePlatformSpecificSetup = Platform.select({
     default: noop,
 });
 
-export default function RootLayout() {
+function RootLayoutNav() {
     usePlatformSpecificSetup();
     const { isDarkColorScheme } = useColorScheme();
+    const { isAuthenticated } = useAuthStore(); // Use the Zustand store
+    const segments = useSegments();
+    const router = useRouter();
+
+    React.useEffect(() => {
+        const currentSegment = segments[0] as string; // Cast to string to avoid type errors
+        const inAuthGroup = currentSegment === '(auth)';
+        const inAppGroup = currentSegment === '(app)';
+
+        if (!isAuthenticated && !inAuthGroup) {
+            router.replace('/login' as any); // Use 'as any' to bypass strict type checking for now
+        } else if (isAuthenticated && (inAuthGroup || !inAppGroup)) {
+            router.replace('/(app)/' as any); // Use 'as any' to bypass strict type checking for now
+        }
+    }, [isAuthenticated, segments, router]);
+
 
     return (
         <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
             <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
             <Stack>
-                <Stack.Screen
-                    name="index"
-                    options={{
-                        title: 'Starter Base',
-                        headerRight: () => <ThemeToggle />,
-                    }}
-                />
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Protected guard={isAuthenticated}>
+                    <Stack.Screen 
+                        name="(app)" 
+                        options={{ 
+                            headerShown: false,
+                        }}
+                    />
+                </Stack.Protected>
             </Stack>
             <PortalHost />
         </ThemeProvider>
     );
+}
+
+export default function RootLayout() {
+    return <RootLayoutNav />; // Removed AuthProvider as Zustand handles global state
 }
 
 const useIsomorphicLayoutEffect =
