@@ -1,0 +1,36 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+**React Native Reusables - Ruleset**
+
+1.  **Component Importing:**
+    *   Components are generally imported from `~/components/ui/<component-name>`. For example, `import { Button } from '~/components/ui/button';`.
+    *   Ensure all necessary sub-components are imported (e.g., `AlertDialogTrigger`, `AlertDialogContent` for `AlertDialog`).
+
+2.  **Styling and Theming:**
+    *   The library uses NativeWind v4 and is built with accessibility in mind.
+    *   Leverage the `useColorScheme` hook (likely from `~/lib/useColorScheme` which wraps `nativewind`) for light/dark mode detection and toggling.
+    *   CSS variables are defined for theming (see `initial-setup.mdx#_snippet_8` for light and dark theme variables).
+    *   For React Navigation, use `ThemeProvider` with `NAV_THEME.light` and `NAV_THEME.dark` for consistent theming.
+
+3.  **Platform Considerations:**
+    *   Use `Platform.OS` checks for platform-specific logic or UI (e.g., `'web'`, `'ios'`, `'android'`).
+    *   Employ `useIsomorphicLayoutEffect` (defined in `initial-setup.mdx#_snippet_14`) instead of `React.useLayoutEffect` to prevent server-side rendering warnings on the web.
+    *   For components like `Tooltip` and `Popover`, use `useSafeAreaInsets` to adjust content positioning based on device screen notches and other UI elements.
+
+4.  **Common Patterns:**
+    *   **`asChild` Prop:** Many components support the `asChild` prop to forward props to a single child component, allowing for greater flexibility in rendering and event handling (e.g., using a `Pressable` inside a `Button`).
+    *   **Refs:** Utilize `React.useRef` for direct manipulation of components, such as focusing a `TextInput` or programmatically opening a `HoverCard`.
+    *   **Portals:** For modals or overlays that need to render outside the current component tree, use the `PortalHost` and `Portal` components (from `@rn-primitives/portal`). Ensure a named `PortalHost` is available in the render tree, especially for modal screens.
+    *   **File Structure:** Components are typically located in `components/ui/` and utility functions/hooks in `lib/`.
+
+5.  **Accessibility:**
+    *   Components are designed with accessibility in mind. Ensure proper `aria-label`, `aria-labelledby`, and other accessibility props are used where appropriate (e.g., `RadioGroupItem` `aria-labelledby`).
+
+6.  **Text Component:**
+    *   The `Text` component can inherit styles from parent `TextClassContext.Provider` components. Direct `className` props on a `Text` component will override context-based styles.
+
+7.  **Dependencies for Manual Setup:**
+    *   If not using the CLI, core dependencies include `tailwindcss-animate`, `class-variance-authority`, `clsx`, and `tailwind-merge`. Install via `npx expo install ...`.

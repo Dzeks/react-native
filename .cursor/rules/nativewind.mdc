@@ -1,0 +1,330 @@
+---
+description: Rules for styling using NativeWind v4 library.
+globs: 
+alwaysApply: false
+---
+## Styling Components
+
+### Using `className`
+Apply Tailwind CSS classes directly to components using the `className` prop. This relies on the NativeWind Babel plugin.
+
+```tsx
+import { Text, View } from 'react-native';
+
+export function MyComponent() {
+  return (
+    <View className="flex-1 items-center justify-center bg-white">
+      <Text className="text-slate-800 font-bold">Hello NativeWind!</Text>
+    </View>
+  );
+}
+```
+
+### `styled` HOC
+Wrap React Native components with the `styled` higher-order component to enable `className` or `tw` props.
+
+```javascript
+import { Text, View } from 'react-native';
+import { styled } from 'nativewind';
+
+const StyledView = styled(View);
+const StyledText = styled(Text);
+
+const App = () => {
+  return (
+    <StyledView className="flex-1 items-center justify-center">
+      <StyledText className="text-slate-800">
+        Try editing me! 🎉
+      </StyledText>
+    </StyledView>
+  );
+};
+```
+You can also provide default styles:
+```javascript
+const StyledDefaultView = styled(View, 'flex-1 items-center justify-center');
+const StyledDefaultText = styled(Text, 'font-bold');
+```
+
+### Conditional Styling
+Construct `className` strings dynamically based on props.
+```tsx
+import { Text } from "react-native";
+
+export function MyText({ bold, italic, className: externalClassName, ...props }) {
+  const classNames = [];
+
+  if (bold) classNames.push("font-bold");
+  if (italic) classNames.push("italic");
+  if (externalClassName) classNames.push(externalClassName);
+
+  return <Text className={classNames.join(" ")} {...props} />;
+}
+```
+**Note**: Avoid constructing class names with template literals inside `className` if the parts are not full class names, as Tailwind's JIT compiler may not pick them up.
+```diff
+- <Text className={`text-${error ? 'red' : 'green'}-600`}></Text>
++ <Text className={`${error ? 'text-red-600' : 'text-green-600'}`}></Text>
+```
+
+
+### Platform-Specific Styles
+Use platform prefixes (`ios:`, `android:`, `web:`) in your `className`.
+```tsx
+import { Text } from 'react-native';
+import { styled } from 'nativewind';
+
+const StyledText = styled(Text);
+
+const PlatformSpecificText = () => {
+  return (
+    <StyledText className="ios:text-red-500 android:text-blue-500 web:text-green-600">
+      Platform Specific Colors
+    </StyledText>
+  );
+};
+```
+
+### Styling Third-Party Components
+
+#### `cssInterop`
+Use `cssInterop` to map `className` to the appropriate style prop(s) of third-party components. This is useful for components that don't natively accept a `className` prop or have specific style-related props.
+
+```tsx
+import { TextInput } from 'react-native';
+import { cssInterop } from 'nativewind';
+
+// Map className to style, and extract textAlign to its own prop
+cssInterop(TextInput, {
+  className: {
+    target: "style",
+    nativeStyleToProp: {
+      textAlign: true,
+    }
+  },
+  // Example for placeholder text color
+  placeholderClassName: {
+    target: false, // Don't pass placeholderClassName as a prop
+    nativeStyleToProp: {
+      color: "placeholderTextColor"
+    }
+  }
+});
+
+// Usage
+<TextInput className="text-lg text-blue-500 text-center" placeholderClassName="text-gray-400" placeholder="Enter text" />
+```
+
+For SVG components from `react-native-svg`:
+```tsx
+import { Svg, Circle } from "react-native-svg";
+import { cssInterop } from "nativewind";
+
+cssInterop(Svg, {
+  className: {
+    target: "style",
+    nativeStyleToProp: { height: true, width: true },
+  },
+});
+cssInterop(Circle, {
+  className: {
+    target: "style",
+    nativeStyleToProp: { fill: true, stroke: true, strokeWidth: true },
+  },
+});
+
+// Usage
+<Svg className="w-24 h-24" viewBox="0 0 100 100">
+  <Circle className="fill-green-500 stroke-blue-500 stroke-2" cx="50" cy="50" r="45" />
+</Svg>
+```
+
+#### `remapProps`
+For components with multiple style-related props (e.g., `style` and `contentContainerStyle` on `FlatList`), use `remapProps`.
+
+```tsx
+import { FlatList } from 'react-native';
+import { remapProps } from 'nativewind';
+
+// Call this once at the entry point of your app
+remapProps(FlatList, {
+  className: "style",
+  contentContainerClassName: "contentContainerStyle",
+  // Add other mappings as needed
+  ListFooterComponentClassName: "ListFooterComponentStyle",
+  ListHeaderComponentClassName: "ListHeaderComponentStyle",
+  columnWrapperClassName: "columnWrapperStyle",
+});
+
+// Usage
+<FlatList
+  data={[{key: '1', text: 'Item 1'}]}
+  renderItem={({item}) => <Text className="text-white">{item.text}</Text>}
+  className="bg-neutral-800"
+  contentContainerClassName="p-4"
+  ListHeaderComponent={<Text className="text-xl text-white p-2">Header</Text>}
+  ListHeaderComponentClassName="bg-neutral-700"
+/>
+```
+
+### Style Specificity and `!important`
+Inline styles generally override `className` styles. Use the `!` prefix (Tailwind's `!important` modifier) to give a utility class higher specificity.
+```tsx
+// Remapped component example
+function MyText({ style, ...props }) {
+  return <Text {...props} style={[{ color: 'black' }, style]} />;
+}
+remapProps(MyText, { className: 'style' });
+
+// Web: black, Native: red
+<MyText className="text-red-500" />
+
+// Both platforms: red
+<MyText className="!text-red-500" />
+
+// Inline style wins by default
+<Text className="text-red-500" style={{ color: 'green' }} /> // green text
+
+// !important className wins
+<Text className="!text-red-500" style={{ color: 'green' }} /> // red text
+```
+
+## Theming
+
+### CSS Variables
+Define CSS variables and use them in your styles.
+```tsx
+import { View, Text } from 'react-native';
+import { vars } from 'nativewind';
+
+const customTheme = vars({
+  '--color-primary': 'blue',
+  '--color-secondary': 'gray',
+  '--font-size-large': '20px',
+});
+
+function ThemedComponent() {
+  return (
+    <View style={customTheme} className="p-4">
+      <Text className="text-[--color-primary] text-[length:--font-size-large]">
+        Primary Color, Large Font
+      </Text>
+      <Text className="text-[--color-secondary]">
+        Secondary Color
+      </Text>
+    </View>
+  );
+}
+```
+Variables can be changed inline:
+```tsx
+const darkTheme = vars({ '--color-primary': 'white', '--color-secondary': 'lightgray' });
+<View style={darkTheme}>
+  <Text className="text-[--color-primary]">I am now white!</Text>
+</View>
+```
+
+### `useColorScheme` for Light/Dark Mode
+Use `useColorScheme` from NativeWind to adapt styles based on the system's color scheme.
+```tsx
+import { View, Text } from 'react-native';
+import { useColorScheme, vars } from 'nativewind';
+
+// Define variables for light and dark themes
+const lightVars = vars({ '--text-color': 'black', '--bg-color': 'white' });
+const darkVars = vars({ '--text-color': 'white', '--bg-color': 'black' });
+
+function MyThemeComponent() {
+  const { colorScheme, setColorScheme } = useColorScheme();
+
+  return (
+    <View style={colorScheme === 'dark' ? darkVars : lightVars} className="flex-1 p-4 bg-[--bg-color]">
+      <Text className="text-[--text-color]">Current scheme: {colorScheme}</Text>
+      <Button title="Toggle Scheme" onPress={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')} />
+    </View>
+  );
+}
+```
+You can also manage multiple themes:
+```tsx
+const themes = {
+  brand: {
+    light: vars({ '--color-primary': 'black', '--color-secondary': 'white' }),
+    dark: vars({ '--color-primary': 'white', '--color-secondary': 'black' }),
+  },
+  christmas: {
+    light: vars({ '--color-primary': 'red', '--color-secondary': 'green' }),
+    dark: vars({ '--color-primary': 'green', '--color-secondary': 'red' }),
+  }
+};
+
+function ThemeSwitcher({ themeName, children }) {
+  const { colorScheme } = useColorScheme();
+  return <View style={themes[themeName][colorScheme]}>{children}</View>;
+}
+
+// Usage:
+// <ThemeSwitcher themeName="brand">
+//   <Text className="text-[--color-primary]">Brand Primary</Text>
+// </ThemeSwitcher>
+```
+
+### Theme Functions in `tailwind.config.js`
+Use NativeWind's theme functions for platform-specific or dynamic values in your `tailwind.config.js`.
+```javascript
+// tailwind.config.js
+const { platformSelect, platformColor, pixelRatioSelect, hairlineWidth, fontScale } = require("nativewind/theme");
+
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        brand: platformSelect({
+          ios: platformColor('label'), // Uses iOS system 'label' color
+          android: platformColor('?android:attr/textColor'), // Uses Android system text color
+          default: "var(--brand-color, black)" // Web/default with a CSS variable fallback
+        }),
+        error: platformSelect({
+          ios: "red",
+          android: "blue",
+          default: "green",
+        }),
+      },
+      borderWidth: {
+        "hairline": hairlineWidth(), // Platform-specific thinnest line
+        "custom-hairline": pixelRatioSelect({
+          1: hairlineWidth(), // for 1x pixel density
+          1.5: 1,            // for 1.5x pixel density
+          default: hairlineWidth() // fallback
+        })
+      },
+      fontSize: {
+        'scaled-base': fontScale(16), // Scales 16px based on device font scale
+        'scaled-dynamic': fontScale({ // Different base sizes for different font scales
+          1: 14,    // if fontScale is 1
+          1.5: 18,  // if fontScale is 1.5
+          default: 16 // fallback
+        })
+      }
+    },
+  },
+  plugins: [],
+};
+```
+
+## Safe Area Insets
+Use `p-safe`, `pt-safe`, `pb-safe`, etc., utility classes for safe area padding. Ensure your app is wrapped with `SafeAreaProvider`.
+```tsx
+import { View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+export function MyApp(props) {
+  return (
+    <SafeAreaProvider>
+      <View className="flex-1 pt-safe bg-blue-500">
+        {/* Content here will have top padding in safe area */}
+      </View>
+    </SafeAreaProvider>
+  );
+}
+```

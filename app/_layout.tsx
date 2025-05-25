@@ -42,21 +42,6 @@ function RootLayoutNav() {
     usePlatformSpecificSetup();
     const { isDarkColorScheme } = useColorScheme();
     const { isAuthenticated } = useAuthStore(); // Use the Zustand store
-    const segments = useSegments();
-    const router = useRouter();
-
-    React.useEffect(() => {
-        const currentSegment = segments[0] as string; // Cast to string to avoid type errors
-        const inAuthGroup = currentSegment === '(auth)';
-        const inAppGroup = currentSegment === '(app)';
-
-        if (!isAuthenticated && !inAuthGroup) {
-            router.replace('/login' as any); // Use 'as any' to bypass strict type checking for now
-        } else if (isAuthenticated && (inAuthGroup || !inAppGroup)) {
-            router.replace('/(app)/' as any); // Use 'as any' to bypass strict type checking for now
-        }
-    }, [isAuthenticated, segments, router]);
-
 
     return (
         <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
