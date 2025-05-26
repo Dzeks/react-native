@@ -273,6 +273,17 @@ export default function ListScreen() {
     </Card>
   );
 
+  const renderListHeader = () => (
+    <View className="px-4 py-3 flex-row justify-between items-center">
+      <Text className="text-lg font-bold text-foreground">{totalJobs} {activeTab} jobs</Text>
+      <View className="flex-row items-center">
+        <ListFilter size={16} className="text-foreground mr-1" />
+        <Text className="text-sm text-foreground">Nearby</Text>
+        <ChevronDown size={16} className="text-foreground ml-0.5" />
+      </View>
+    </View>
+  );
+
   if (loading && jobs.length === 0) {
     return (
       <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -409,21 +420,12 @@ export default function ListScreen() {
         </View>
       </View>
 
-      {/* Job List Title */}
-      <View className="px-4 py-3 flex-row justify-between items-center">
-        <Text className="text-lg font-bold text-foreground">{totalJobs} {activeTab} jobs</Text>
-        <View className="flex-row items-center">
-          <ListFilter size={16} className="text-foreground mr-1" />
-          <Text className="text-sm text-foreground">Nearby</Text>
-          <ChevronDown size={16} className="text-foreground ml-0.5" />
-        </View>
-      </View>
-
       <FlatList
         data={jobs}
         renderItem={renderItem}
         keyExtractor={(item) => item.workAssignmentId}
-        contentContainerClassName="pt-2 pb-4"
+        ListHeaderComponent={renderListHeader}
+        contentContainerClassName="pb-4" // Removed pt-2 as header now provides top padding
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={loading && currentPage === 0 && jobs.length > 0} onRefresh={onRefresh} />
