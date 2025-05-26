@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, FlatList, Pressable, Animated, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, FlatList, Pressable as RNPressable, Animated, ActivityIndicator, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
@@ -48,6 +49,8 @@ export default function ListScreen() {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [canLoadMore, setCanLoadMore] = useState<boolean>(true);
+
+  const router = useRouter();
 
   // Initialize animations for each tab
   useEffect(() => {
@@ -180,65 +183,72 @@ export default function ListScreen() {
 
   const renderItem = ({ item }: { item: PublicJob }) => {
     const jobCardItem = mapPublicJobToJobCardData(item);
+
+    const handlePress = () => {
+      router.push(`/job/${jobCardItem.id}` as any);
+    };
+
     return (
-      <Card className="mx-4 mb-4">
-        <CardHeader className="pb-2">
-          <View className="flex-row justify-between items-start">
-            <View className="flex-row items-center">
-              {/* Logo placeholder */}
-              <View className="w-12 h-12 bg-muted rounded-md mr-3 items-center justify-center">
-                <Text className="text-xs text-muted-foreground">Logo</Text>
+      <RNPressable onPress={handlePress}>
+        <Card className="mx-4 mb-4">
+          <CardHeader className="pb-2">
+            <View className="flex-row justify-between items-start">
+              <View className="flex-row items-center">
+                {/* Logo placeholder */}
+                <View className="w-12 h-12 bg-muted rounded-md mr-3 items-center justify-center">
+                  <Text className="text-xs text-muted-foreground">Logo</Text>
+                </View>
+              </View>
+              <View className="items-end ml-3">
+                <Text className="text-base font-bold text-card-foreground">{jobCardItem.payRate}</Text>
+                <Text className="text-xs text-muted-foreground">{jobCardItem.publishedTime}</Text>
               </View>
             </View>
-            <View className="items-end ml-3">
-              <Text className="text-base font-bold text-card-foreground">{jobCardItem.payRate}</Text>
-              <Text className="text-xs text-muted-foreground">{jobCardItem.publishedTime}</Text>
+            <View className="mt-2">
+              <CardTitle className="text-lg font-semibold leading-tight" numberOfLines={3}>
+                {jobCardItem.title}
+              </CardTitle>
             </View>
-          </View>
-          <View className="mt-2">
-            <CardTitle className="text-lg font-semibold leading-tight" numberOfLines={3}>
-              {jobCardItem.title}
-            </CardTitle>
-          </View>
-        </CardHeader>
+          </CardHeader>
 
-        <CardContent className="pt-0 pb-2">
-          <Text className="text-sm font-medium">{jobCardItem.companyName}</Text>
-          <Text className="text-xs text-muted-foreground mt-1">
-            {jobCardItem.location} · {jobCardItem.distance}
-          </Text>
-          <Text className="text-xs text-muted-foreground mt-1">
-            {jobCardItem.date} · {jobCardItem.shifts}
-          </Text>
-        </CardContent>
+          <CardContent className="pt-0 pb-2">
+            <Text className="text-sm font-medium">{jobCardItem.companyName}</Text>
+            <Text className="text-xs text-muted-foreground mt-1">
+              {jobCardItem.location} · {jobCardItem.distance}
+            </Text>
+            <Text className="text-xs text-muted-foreground mt-1">
+              {jobCardItem.date} · {jobCardItem.shifts}
+            </Text>
+          </CardContent>
 
-        <CardFooter className="flex-row justify-between items-center pt-0">
-          <View className="flex-row flex-wrap gap-1 flex-1">
-            {jobCardItem.tags.map((tag) => (
-              <Badge
-                key={tag.text}
-                className={`${
-                  tag.type === 'favourite' ? 'bg-pink-100 dark:bg-pink-900' : 'bg-gray-200 dark:bg-neutral-700'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-semibold ${
-                    tag.type === 'favourite' ? 'text-pink-700 dark:text-pink-300' : 'text-neutral-700 dark:text-neutral-300'
+          <CardFooter className="flex-row justify-between items-center pt-0">
+            <View className="flex-row flex-wrap gap-1 flex-1">
+              {jobCardItem.tags.map((tag) => (
+                <Badge
+                  key={tag.text}
+                  className={`${
+                    tag.type === 'favourite' ? 'bg-pink-100 dark:bg-pink-900' : 'bg-gray-200 dark:bg-neutral-700'
                   }`}
                 >
-                  {tag.text}
-                </Text>
-              </Badge>
-            ))}
-          </View>
-          <Pressable
-            onPress={() => console.log('Bookmark pressed for', jobCardItem.id)}
-            className="ml-3"
-          >
-            <Bookmark size={24} className="text-foreground" />
-          </Pressable>
-        </CardFooter>
-      </Card>
+                  <Text
+                    className={`text-xs font-semibold ${
+                      tag.type === 'favourite' ? 'text-pink-700 dark:text-pink-300' : 'text-neutral-700 dark:text-neutral-300'
+                    }`}
+                  >
+                    {tag.text}
+                  </Text>
+                </Badge>
+              ))}
+            </View>
+            <RNPressable
+              onPress={() => console.log('Bookmark pressed for', jobCardItem.id)}
+              className="ml-3"
+            >
+              <Bookmark size={24} className="text-foreground" />
+            </RNPressable>
+          </CardFooter>
+        </Card>
+      </RNPressable>
     );
   };
 
@@ -302,7 +312,7 @@ export default function ListScreen() {
           </View>
           <View className="flex-row gap-2">
             {tabs.map((tab) => (
-              <Pressable
+              <RNPressable
                 key={tab.id}
                 className={`rounded-full py-2 px-2 border-2 ${
                   activeTab === tab.id 
@@ -320,7 +330,7 @@ export default function ListScreen() {
                      {tab.label}
                    </Text>
                  </View>
-              </Pressable>
+              </RNPressable>
             ))}
           </View>
         </View>
@@ -358,9 +368,9 @@ export default function ListScreen() {
     return (
       <View className="flex-1 justify-center items-center bg-background" style={{ paddingTop: insets.top }}>
         <Text className="text-destructive text-center mb-4">Error: {error}</Text>
-        <Pressable onPress={() => { /* Implement retry logic if needed */ }} className="bg-primary py-2 px-4 rounded-md">
+        <RNPressable onPress={() => { /* Implement retry logic if needed */ }} className="bg-primary py-2 px-4 rounded-md">
           <Text className="text-primary-foreground">Try Again</Text>
-        </Pressable>
+        </RNPressable>
       </View>
     );
   }
@@ -382,7 +392,7 @@ export default function ListScreen() {
         </View>
         <View className="flex-row gap-2">
           {tabs.map((tab) => (
-            <Pressable
+            <RNPressable
               key={tab.id}
               onPress={() => setActiveTab(tab.id)}
               className={`rounded-full py-2 px-2 border-2 ${
@@ -415,7 +425,7 @@ export default function ListScreen() {
                    {tab.label}
                  </Text>
                </View>
-            </Pressable>
+            </RNPressable>
           ))}
         </View>
       </View>
