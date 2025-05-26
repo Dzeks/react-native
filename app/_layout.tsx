@@ -46,16 +46,14 @@ function RootLayoutNav() {
     return (
         <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
             <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
-            <Stack>
+            <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Protected guard={!isAuthenticated}>
-                    <Stack.Screen name="login" options={{ headerShown: false }} />
+                    <Stack.Screen name="login" />
                 </Stack.Protected>
                 <Stack.Protected guard={isAuthenticated}>
                     <Stack.Screen
-                        name="(app)"
-                        options={{
-                            headerShown: false,
-                        }}
+                        name="(tabs)"
+                        options={{ headerShown: false }}
                     />
                 </Stack.Protected>
             </Stack>
