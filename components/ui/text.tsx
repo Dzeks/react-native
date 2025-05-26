@@ -8,19 +8,33 @@ const TextClassContext = React.createContext<string | undefined>(undefined);
 function Text({
     className,
     asChild = false,
+    variant,
     ...props
 }: React.ComponentProps<typeof RNText> & {
     ref?: React.RefObject<RNText>;
     asChild?: boolean;
+    variant?: 'default' | 'destructive' | 'muted';
 }) {
     const textClass = React.useContext(TextClassContext);
     const Component = asChild ? Slot.Text : RNText;
+    
+    const getVariantClasses = () => {
+        switch (variant) {
+            case 'destructive':
+                return 'text-base text-destructive web:select-text';
+            case 'muted':
+                return 'text-base text-muted-foreground web:select-text';
+            default:
+                return 'text-base text-foreground web:select-text';
+        }
+    };
+    
     return (
         <Component
             className={cn(
-                'text-base text-foreground web:select-text',
+                getVariantClasses(),
                 textClass,
-                className,
+                className
             )}
             {...props}
         />
