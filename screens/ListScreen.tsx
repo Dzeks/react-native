@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, FlatList, Pressable } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, FlatList, Pressable, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
@@ -18,6 +18,7 @@ import {
   Check,
   ListFilter,
 } from 'lucide-react-native';
+
 
 // Interface for Job Card Data
 interface JobCardData {
@@ -67,37 +68,73 @@ const jobData: JobCardData[] = [
   },
 ];
 
+// Interface for Tab Data
+interface TabData {
+  id: string;
+  label: string;
+}
+
+// Tab options
+const tabs: TabData[] = [
+  { id: 'internal', label: 'Internal' },
+  { id: 'flexible', label: 'Flexible' },
+  { id: 'temp-perm', label: 'Temp & perm' },
+];
+
 export default function ListScreen() {
   const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<string>('flexible');
+  const checkAnimations = useRef<{ [key: string]: Animated.Value }>({});
+
+  // Initialize animations for each tab
+  useEffect(() => {
+    tabs.forEach((tab) => {
+      if (!checkAnimations.current[tab.id]) {
+        checkAnimations.current[tab.id] = new Animated.Value(tab.id === 'flexible' ? 1 : 0);
+      }
+    });
+  }, []);
+
+  // Animate check icon when active tab changes
+  useEffect(() => {
+    tabs.forEach((tab) => {
+      const targetValue = activeTab === tab.id ? 1 : 0;
+      Animated.timing(checkAnimations.current[tab.id], {
+        toValue: targetValue,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [activeTab]);
 
   const renderItem = ({ item }: { item: JobCardData }) => (
-    <Card className="mx-4 mb-4 bg-white">
+    <Card className="mx-4 mb-4">
       <CardHeader className="pb-2">
         <View className="flex-row justify-between items-start">
           <View className="flex-row items-center flex-1">
             {/* Logo placeholder */}
-            <View className="w-12 h-12 bg-gray-200 rounded-md mr-3 items-center justify-center">
-              <Text className="text-xs text-gray-500">Logo</Text>
+            <View className="w-12 h-12 bg-muted rounded-md mr-3 items-center justify-center">
+              <Text className="text-xs text-muted-foreground">Logo</Text>
             </View>
             <View className="flex-1">
-              <CardTitle className="text-lg font-semibold text-neutral-800 leading-tight">
+              <CardTitle className="text-lg font-semibold leading-tight">
                 {item.title}
               </CardTitle>
             </View>
           </View>
           <View className="items-end ml-3">
-            <Text className="text-base font-bold text-neutral-800">{item.payRate}</Text>
-            <Text className="text-xs text-neutral-500">{item.publishedTime}</Text>
+            <Text className="text-base font-bold text-card-foreground">{item.payRate}</Text>
+            <Text className="text-xs text-muted-foreground">{item.publishedTime}</Text>
           </View>
         </View>
       </CardHeader>
 
       <CardContent className="pt-0 pb-2">
-        <Text className="text-sm text-neutral-700 font-medium">{item.companyName}</Text>
-        <Text className="text-xs text-neutral-600 mt-1">
+        <Text className="text-sm font-medium">{item.companyName}</Text>
+        <Text className="text-xs text-muted-foreground mt-1">
           {item.location} · {item.distance}
         </Text>
-        <Text className="text-xs text-neutral-600 mt-1">
+        <Text className="text-xs text-muted-foreground mt-1">
           {item.date} · {item.shifts}
         </Text>
       </CardContent>
@@ -108,12 +145,12 @@ export default function ListScreen() {
             <Badge
               key={tag.text}
               className={`${
-                tag.type === 'favourite' ? 'bg-pink-100' : 'bg-gray-200'
+                tag.type === 'favourite' ? 'bg-pink-100 dark:bg-pink-900' : 'bg-gray-200 dark:bg-neutral-700'
               }`}
             >
               <Text
                 className={`text-xs font-semibold ${
-                  tag.type === 'favourite' ? 'text-pink-700' : 'text-neutral-700'
+                  tag.type === 'favourite' ? 'text-pink-700 dark:text-pink-300' : 'text-neutral-700 dark:text-neutral-300'
                 }`}
               >
                 {tag.text}
@@ -121,51 +158,78 @@ export default function ListScreen() {
             </Badge>
           ))}
         </View>
-        <Pressable 
+        <Pressable
           onPress={() => console.log('Bookmark pressed for', item.id)}
           className="ml-3"
         >
-          <Bookmark size={24} className="text-neutral-600" />
+          <Bookmark size={24} className="text-muted-foreground" />
         </Pressable>
       </CardFooter>
     </Card>
   );
 
   return (
-    <View className="flex-1 bg-neutral-100" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header Section */}
-      <View className="px-4 py-3 bg-white border-b border-neutral-200">
+      <View className="px-4 py-3 bg-card border-b border-border">
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center">
-            <Text className="text-base text-neutral-700">London, EC2A 2BS (+60 km)</Text>
-            <ChevronDown size={16} className="text-neutral-700 ml-1" />
+            <Text className="text-base text-foreground">London, EC2A 2BS (+60 km)</Text>
+            <ChevronDown size={16} className="text-foreground ml-1" />
           </View>
           <View className="flex-row items-center gap-3">
-            <Search size={24} className="text-neutral-700" />
-            <FilterIcon size={24} className="text-neutral-700" />
-            <Bookmark size={24} className="text-neutral-700" />
+            <Search size={24} className="text-foreground" />
+            <FilterIcon size={24} className="text-foreground" />
+            <Bookmark size={24} className="text-foreground" />
           </View>
         </View>
         <View className="flex-row gap-2">
-          <Badge className="bg-black rounded-full py-2 px-4">
-            <View className="flex-row items-center">
-              <Check size={16} className="text-white mr-1.5" />
-              <Text className="text-white text-sm font-semibold">Flexible</Text>
-            </View>
-          </Badge>
-          <Badge className="bg-neutral-200 rounded-full py-2 px-4">
-            <Text className="text-neutral-700 text-sm font-semibold">Temp & perm</Text>
-          </Badge>
+          {tabs.map((tab) => (
+            <Pressable
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              className={`rounded-full py-2 px-2 border-2 ${
+                activeTab === tab.id 
+                  ? 'border-black' 
+                  : 'border-primary-foreground'
+              }`}
+            >
+               <View className="flex-row items-center justify-center">
+                 <View className="w-4 mr-1.5">
+                   <Animated.View
+                     style={{
+                       opacity: checkAnimations.current[tab.id],
+                       transform: [
+                         {
+                           scale: checkAnimations.current[tab.id]?.interpolate({
+                             inputRange: [0, 1],
+                             outputRange: [0.5, 1],
+                           }) || 0.5,
+                         },
+                       ],
+                     }}
+                   >
+                     <Check size={16} className="text-secondary-foreground" />
+                   </Animated.View>
+                 </View>
+                 <Text 
+                   className="text-sm font-semibold text-secondary-foreground mr-4"
+                 >
+                   {tab.label}
+                 </Text>
+               </View>
+            </Pressable>
+          ))}
         </View>
       </View>
 
       {/* Job List Title */}
       <View className="px-4 py-3 flex-row justify-between items-center">
-        <Text className="text-lg font-bold text-neutral-800">202 Flexible jobs</Text>
+        <Text className="text-lg font-bold text-foreground">202 Flexible jobs</Text>
         <View className="flex-row items-center">
-          <ListFilter size={16} className="text-neutral-700 mr-1" />
-          <Text className="text-sm text-neutral-700">Nearby</Text>
-          <ChevronDown size={16} className="text-neutral-700 ml-0.5" />
+          <ListFilter size={16} className="text-foreground mr-1" />
+          <Text className="text-sm text-foreground">Nearby</Text>
+          <ChevronDown size={16} className="text-foreground ml-0.5" />
         </View>
       </View>
 
