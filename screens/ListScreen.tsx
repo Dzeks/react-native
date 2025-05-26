@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, FlatList, Pressable, Animated, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, FlatList, Pressable, Animated, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Card,
@@ -10,6 +10,7 @@ import {
 } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Text } from '~/components/ui/text';
+import { Skeleton } from '~/components/ui/skeleton';
 import { Bookmark } from '~/lib/icons/Bookmark';
 import { Check } from '~/lib/icons/Check';
 import { ChevronDown } from '~/lib/icons/ChevronDown';
@@ -18,76 +19,8 @@ import {
   SlidersHorizontal as FilterIcon,
   ListFilter,
 } from 'lucide-react-native';
-
-// API Interfaces
-export interface PublicJob {
-  workAssignmentId: string;
-  waReadableId: string;
-  hourlyWage: {
-    amount: number;
-    currencyId: number;
-  };
-  salary: {
-    amount: number;
-    currencyId: number;
-  };
-  hourlyWageWithHolidayPay?: {
-    amount: number;
-    currencyId: number;
-  };
-  salaryWithHolidayPay?: {
-    amount: number;
-    currencyId: number;
-  };
-  jobSkill: {
-    jobProfileId: number;
-    educationalLevelId: number;
-  };
-  workAssignmentName: string;
-  jobLocation: {
-    addressStreet: string;
-    extraAddress: string;
-    zip: string;
-    city: string;
-    state: string;
-    countryId: number;
-  };
-  periodFrom: number;
-  datePublished: number;
-  branchLink?: string;
-}
-
-export interface CoopleJobsResponse {
-  status: number;
-  data: {
-    items: PublicJob[];
-    total: number;
-  };
-  errorCode: string;
-  errorDetails: Record<string, any>;
-  errorId: number;
-  error: boolean;
-}
-
-export interface CoopleJobsRequest {
-  pageNum: number;
-  pageSize: number;
-}
-
-// Interface for Job Card Data (will be mapped from PublicJob)
-interface JobCardData {
-  id: string;
-  logoUrl: string; // This might need a placeholder or be removed if not in API
-  title: string;
-  companyName: string; // This might need a placeholder or be derived
-  location: string;
-  distance: string; // This might need to be calculated or removed
-  date: string; // This will be derived from periodFrom
-  shifts: string; // This information is not directly in PublicJob, might need placeholder or removal
-  payRate: string; // This will be derived from hourlyWage or salary
-  publishedTime: string; // This will be derived from datePublished
-  tags: { text: string; type: 'favourite' | 'workedBefore' | 'nightShift' }[]; // This information is not in PublicJob, might need placeholder or removal
-}
+import { PublicJob, JobCardData } from '~/types/jobs'; // Import interfaces
+import { fetchPublicJobs } from '~/services/jobService'; // Import service
 
 // Interface for Tab Data
 interface TabData {
@@ -102,6 +35,8 @@ const tabs: TabData[] = [
   { id: 'temp-perm', label: 'Temp & perm' },
 ];
 
+const PAGE_SIZE = 20;
+
 export default function ListScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<string>('flexible');
@@ -110,6 +45,9 @@ export default function ListScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [totalJobs, setTotalJobs] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [canLoadMore, setCanLoadMore] = useState<boolean>(true);
 
   // Initialize animations for each tab
   useEffect(() => {
@@ -120,43 +58,50 @@ export default function ListScreen() {
     });
   }, []);
 
-  // Fetch jobs from API
-  useEffect(() => {
-    const fetchJobs = async () => {
+  const loadPageData = useCallback(async (page: number, isRefreshOperation: boolean = false) => {
+    if (isRefreshOperation) {
       setLoading(true);
-      setError(null);
-      const pageSize = 20; // Or any other desired page size
-      try {
-        const response = await fetch(
-          `https://www.coople.com/ch/resources/api/work-assignments/public-jobs/list?pageNum=0&pageSize=${pageSize}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result: CoopleJobsResponse = await response.json();
-        if (result.error) {
-          throw new Error(result.errorCode || 'API returned an error');
-        }
-        setJobs(result.data.items);
-        setTotalJobs(result.data.total);
-      } catch (e: any) {
-        setError(e.message);
-        console.error("Failed to fetch jobs:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } else if (page === 0) {
+      setLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+    setError(null);
 
-    fetchJobs();
+    try {
+      const data = await fetchPublicJobs({ pageNum: page, pageSize: PAGE_SIZE });
+      const newItems = data.items;
+
+      setJobs(prevJobs => {
+        const updatedJobs = (isRefreshOperation || page === 0) ? newItems : [...prevJobs, ...newItems];
+        setCanLoadMore(newItems.length === PAGE_SIZE && updatedJobs.length < data.total);
+        return updatedJobs;
+      });
+      setTotalJobs(data.total);
+
+      if (isRefreshOperation) {
+        setCurrentPage(0);
+      } else {
+        setCurrentPage(page);
+      }
+
+    } catch (e: any) {
+      setError(e.message);
+      console.error("Failed to fetch jobs:", e);
+      setCanLoadMore(false);
+    } finally {
+      if (isRefreshOperation || page === 0) {
+        setLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
+    }
   }, []);
 
-  // Animate check icon when active tab changes
+  useEffect(() => {
+    loadPageData(0);
+  }, [loadPageData]);
+
   useEffect(() => {
     tabs.forEach((tab) => {
       const targetValue = activeTab === tab.id ? 1 : 0;
@@ -167,6 +112,17 @@ export default function ListScreen() {
       }).start();
     });
   }, [activeTab]);
+
+  const onRefresh = useCallback(() => {
+    setCanLoadMore(true);
+    loadPageData(0, true);
+  }, [loadPageData]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loading && !isLoadingMore && canLoadMore) {
+      loadPageData(currentPage + 1);
+    }
+  }, [loading, isLoadingMore, canLoadMore, currentPage, loadPageData]);
 
   const formatPayRate = (job: PublicJob): string => {
     if (job.hourlyWage && job.hourlyWage.amount) {
@@ -228,21 +184,21 @@ export default function ListScreen() {
       <Card className="mx-4 mb-4">
         <CardHeader className="pb-2">
           <View className="flex-row justify-between items-start">
-            <View className="flex-row items-center flex-1">
+            <View className="flex-row items-center">
               {/* Logo placeholder */}
               <View className="w-12 h-12 bg-muted rounded-md mr-3 items-center justify-center">
                 <Text className="text-xs text-muted-foreground">Logo</Text>
-              </View>
-              <View className="flex-1">
-                <CardTitle className="text-lg font-semibold leading-tight">
-                  {jobCardItem.title}
-                </CardTitle>
               </View>
             </View>
             <View className="items-end ml-3">
               <Text className="text-base font-bold text-card-foreground">{jobCardItem.payRate}</Text>
               <Text className="text-xs text-muted-foreground">{jobCardItem.publishedTime}</Text>
             </View>
+          </View>
+          <View className="mt-2">
+            <CardTitle className="text-lg font-semibold leading-tight" numberOfLines={3}>
+              {jobCardItem.title}
+            </CardTitle>
           </View>
         </CardHeader>
 
@@ -285,6 +241,98 @@ export default function ListScreen() {
       </Card>
     );
   };
+
+  const renderSkeletonItem = () => (
+    <Card className="mx-4 mb-4">
+      <CardHeader className="pb-2">
+        <View className="flex-row justify-between items-start">
+          <View className="flex-row items-center flex-1">
+            <Skeleton className="w-12 h-12 rounded-md mr-3" />
+            <View className="flex-1">
+              <Skeleton className="h-5 w-3/4 rounded" />
+            </View>
+          </View>
+          <View className="items-end ml-3">
+            <Skeleton className="h-5 w-16 rounded mt-1" />
+            <Skeleton className="h-3 w-24 rounded mt-1.5" />
+          </View>
+        </View>
+      </CardHeader>
+      <CardContent className="pt-0 pb-2">
+        <Skeleton className="h-4 w-1/2 rounded mt-1.5" />
+        <Skeleton className="h-3 w-3/4 rounded mt-1.5" />
+        <Skeleton className="h-3 w-2/3 rounded mt-1.5" />
+      </CardContent>
+      <CardFooter className="flex-row justify-between items-center pt-0">
+        <View className="flex-row flex-wrap gap-1 flex-1">
+          <Skeleton className="h-5 w-16 rounded" />
+          <Skeleton className="h-5 w-20 rounded" />
+        </View>
+        <Skeleton className="w-6 h-6 rounded-full ml-3" />
+      </CardFooter>
+    </Card>
+  );
+
+  if (loading && jobs.length === 0) {
+    return (
+      <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+        {/* Header Section - Rendered to maintain layout consistency */}
+        <View className="px-4 py-3 bg-card border-b border-border">
+          <View className="flex-row justify-between items-center mb-3">
+            <View className="flex-row items-center">
+              <Text className="text-base text-foreground">London, EC2A 2BS (+60 km)</Text>
+              <ChevronDown size={16} className="text-foreground ml-1" />
+            </View>
+            <View className="flex-row items-center gap-3">
+              <Search size={24} className="text-foreground" />
+              <FilterIcon size={24} className="text-foreground" />
+              <Bookmark size={24} className="text-foreground" />
+            </View>
+          </View>
+          <View className="flex-row gap-2">
+            {tabs.map((tab) => (
+              <Pressable
+                key={tab.id}
+                className={`rounded-full py-2 px-2 border-2 ${
+                  activeTab === tab.id 
+                    ? 'border-black' 
+                    : 'border-primary-foreground' // Consider a disabled style
+                }`}
+              >
+                 <View className="flex-row items-center justify-center">
+                   <View className="w-4 mr-1.5">
+                       <Check size={16} className="text-foreground opacity-50" /> 
+                   </View>
+                   <Text 
+                     className="text-sm font-semibold text-secondary-foreground mr-4 opacity-50"
+                   >
+                     {tab.label}
+                   </Text>
+                 </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Job List Title Skeleton */}
+        <View className="px-4 py-3 flex-row justify-between items-center">
+          <Skeleton className="h-6 w-1/3 rounded" />
+          <View className="flex-row items-center">
+            <Skeleton className="h-5 w-20 rounded" />
+          </View>
+        </View>
+        
+        {/* Skeleton List */}
+        <FlatList
+          data={Array.from({ length: 5 })} // Render 5 skeleton items
+          renderItem={renderSkeletonItem}
+          keyExtractor={(_, index) => `skeleton-${index}`}
+          contentContainerClassName="pt-2 pb-4"
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -377,6 +425,18 @@ export default function ListScreen() {
         keyExtractor={(item) => item.workAssignmentId}
         contentContainerClassName="pt-2 pb-4"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={loading && currentPage === 0 && jobs.length > 0} onRefresh={onRefresh} />
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isLoadingMore && canLoadMore ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator size="small" />
+            </View>
+          ) : null
+        }
       />
     </View>
   );
