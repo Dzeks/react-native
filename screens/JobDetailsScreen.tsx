@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { ChevronLeft, HelpCircle, Share2, Bookmark, Clock, FileText, MapPin } from 'lucide-react-native'; // Assuming lucide-react-native for icons
+import { Share2, Clock, FileText, MapPin } from 'lucide-react-native';
+import { Bookmark } from '~/lib/icons/Bookmark';
+import { Info } from '~/lib/icons/Info';
+import { ChevronLeft } from '~/lib/icons/ChevronLeft';
 
 interface JobDetailsScreenProps {
   id: string | undefined;
@@ -189,33 +192,32 @@ export default function JobDetailsScreenComponent({ id: routeId }: JobDetailsScr
   ];
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top, flex: 1 }}>
       <Stack.Screen
         options={{
-          headerTransparent: true,
-          title: '',
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="p-2 ml-2 bg-card/70 dark:bg-card/70 rounded-full">
-              <ChevronLeft size={24} className="text-foreground" />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <View className="flex-row items-center mr-2">
-              <TouchableOpacity className="p-2 bg-card/70 dark:bg-card/70 rounded-full ml-2">
-                <HelpCircle size={24} className="text-foreground" />
-              </TouchableOpacity>
-              <TouchableOpacity className="p-2 bg-card/70 dark:bg-card/70 rounded-full ml-2">
-                <Share2 size={24} className="text-foreground" />
-              </TouchableOpacity>
-              <TouchableOpacity className="p-2 bg-card/70 dark:bg-card/70 rounded-full ml-2">
-                <Bookmark size={24} className="text-foreground" />
-              </TouchableOpacity>
-            </View>
-          ),
+          headerShown: false,
         }}
       />
+      {/* New Icon Bar */}
+      <View className="flex-row justify-between items-center px-4 py-2">
+        <TouchableOpacity onPress={() => router.back()} className="p-2 bg-card/70 dark:bg-card/70 rounded-full">
+          <ChevronLeft size={24} className="text-foreground" />
+        </TouchableOpacity>
+        <View className="flex-row items-center">
+          <TouchableOpacity className="p-2 bg-card/70 dark:bg-card/70 rounded-full ml-2">
+            <Info size={24} className="text-foreground" />
+          </TouchableOpacity>
+          <TouchableOpacity className="p-2 bg-card/70 dark:bg-card/70 rounded-full ml-2">
+            <Share2 size={24} className="text-foreground" />
+          </TouchableOpacity>
+          <TouchableOpacity className="p-2 bg-card/70 dark:bg-card/70 rounded-full ml-2">
+            <Bookmark size={24} className="text-foreground" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView contentContainerClassName="pb-24" className="flex-1">
-        <View className="bg-card pt-20 px-4 pb-4"> {/* Added pt-20 for header spacing */}
+        <View className="bg-card px-4 pb-4"> {/* Removed pt-20 */}
           <View className="flex-row items-center mb-1">
             {jobDetails.companyLogoUrl && (
               <Image source={{ uri: jobDetails.companyLogoUrl }} className="w-6 h-6 rounded-full mr-2" />
