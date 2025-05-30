@@ -253,7 +253,7 @@ export default function ListScreen() {
         const jobCardItem = mapPublicJobToJobCardData(item);
 
         const handlePress = () => {
-            router.push(`/job/${jobCardItem.id}` as any);
+            router.push(`/job/${jobCardItem.id}`);
         };
 
         return (
@@ -269,15 +269,13 @@ export default function ListScreen() {
             >
                 <RNPressable onPress={handlePress}>
                     <Card className="mx-4 mb-4 bg-card">
-                        {' '}
-                        {/* Ensure card has a background color */}
                         <CardHeader className="pb-2">
                             <View className="flex-row justify-between items-start">
                                 <View className="flex-row items-center">
                                     {/* Logo placeholder */}
                                     <View className="w-12 h-12 bg-muted rounded-md mr-3 items-center justify-center">
                                         <Text className="text-xs text-muted-foreground">
-                                            Logo
+                                            Logo2
                                         </Text>
                                     </View>
                                 </View>
@@ -384,7 +382,7 @@ export default function ListScreen() {
     const renderListHeader = () => (
         <View className="px-4 py-3 flex-row justify-between items-center">
             <Text className="text-lg font-bold text-foreground">
-                {totalJobs} {activeTab} jobs
+                {totalJobs} {activeTab} jobs ololl
             </Text>
             <View className="flex-row items-center">
                 <ListFilter size={16} className="text-foreground mr-1" />

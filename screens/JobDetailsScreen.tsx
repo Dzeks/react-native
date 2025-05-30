@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     Image,
     Linking,
+    Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -15,7 +16,9 @@ import { Bookmark } from '~/lib/icons/Bookmark';
 import { Info } from '~/lib/icons/Info';
 import { ChevronLeft } from '~/lib/icons/ChevronLeft';
 import { JobDetailsScreenProps } from '../types/job-details';
-import { ApiJobData, fetchJobDetailsById } from '../service/job-details-service';
+import { ApiJobData, fetchJobDetailsById } from '../services/job-details-service';
+import { AppleMaps, GoogleMaps } from 'expo-maps';
+import Rive from 'rive-react-native';
 
 export default function JobDetailsScreenComponent({
     id: routeId,
@@ -33,6 +36,7 @@ export default function JobDetailsScreenComponent({
                 setLoading(true);
                 setError(null);
                 try {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     const data = await fetchJobDetailsById(routeId);
                     setJobDetails(data);
                 } catch (e: any) {
@@ -135,6 +139,12 @@ export default function JobDetailsScreenComponent({
 
             <ScrollView contentContainerClassName="pb-24" className="flex-1">
                 <View className="bg-card px-4 pb-4">
+                    <Rive
+        url="https://public.rive.app/community/runtime-files/2195-4346-avatar-pack-use-case.riv"
+        artboardName="Avatar 1"
+        stateMachineName="avatar"
+        style={{width: 400, height: 400}}
+    />
                     <View className="flex-row items-center mb-1">
                         {companyLogoUrl && (
                             <Image
@@ -160,7 +170,7 @@ export default function JobDetailsScreenComponent({
                             (new Date().getTime() - jobDetails.datePublished) /
                                 (1000 * 60 * 60),
                         )}{' '}
-                        hr ago ⋅ {applicantsCountDisplay} applicants
+                        hr ago ⋅ {applicantsCountDisplay} applicants sss
                     </Text>
                     <View className="flex-row items-center bg-yellow-100 dark:bg-yellow-700/30 p-3 rounded-lg mb-4 border border-yellow-300 dark:border-yellow-600">
                         <Clock size={20} color="orange" className="mr-2" />
@@ -354,14 +364,54 @@ export default function JobDetailsScreenComponent({
                             {jobDetails.jobLocation.extraAddress ? `, ${jobDetails.jobLocation.extraAddress}` : ''}
                             , {jobDetails.jobLocation.zip} {jobDetails.jobLocation.city}
                         </Text>
-                        <View className="h-48 bg-muted my-4 rounded-lg items-center justify-center">
-                            <MapPin
-                                size={48}
-                                className="text-muted-foreground"
-                            />
-                            <Text className="text-muted-foreground mt-2">
-                                Map Placeholder (Coordinates not provided by API)
-                            </Text>
+                        <View className="h-48 bg-muted my-4 rounded-lg items-center justify-center overflow-hidden">
+                            {Platform.OS === 'ios' ? (
+                                <AppleMaps.View
+                                    style={{ flex: 1, width: '100%' }}
+                                    cameraPosition={{
+                                        coordinates: {
+                                            latitude: 47.3769, // Zurich approximate
+                                            longitude: 8.5417,
+                                        },
+                                        zoom: 12,
+                                    }}
+                                    markers={[{
+                                        coordinates: {
+                                            latitude: 47.3769,
+                                            longitude: 8.5417,
+                                        },
+                                        title: 'Job Location (Approx.)',
+                                    }]}
+                                />
+                            ) : Platform.OS === 'android' ? (
+                                <GoogleMaps.View
+                                    style={{ flex: 1, width: '100%' }}
+                                    cameraPosition={{
+                                        coordinates: {
+                                            latitude: 47.3769, // Zurich approximate
+                                            longitude: 8.5417,
+                                        },
+                                        zoom: 12,
+                                    }}
+                                    markers={[{
+                                        coordinates: {
+                                            latitude: 47.3769, // Zurich approximate
+                                            longitude: 8.5417,
+                                        },
+                                        title: 'Job Location (Approx.)',
+                                    }]}
+                                />
+                            ) : (
+                                <>
+                                    <MapPin
+                                        size={48}
+                                        className="text-muted-foreground"
+                                    />
+                                    <Text className="text-muted-foreground mt-2">
+                                        Map view is only available on iOS and Android.
+                                    </Text>
+                                </>
+                            )}
                         </View>
                     </View>
                 )}
